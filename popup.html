@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Kick Clip Deleter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 250px;
+      padding: 10px;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h3>Kick Clip Deleter</h3>
+  <label for="username">Channel Username:</label><br>
+  <input type="text" id="username" placeholder="Enter username"><br><br>
+
+  <button id="startButton">Start</button>
+  <button id="stopButton" disabled>Stop</button>
+
+  <div id="status">Status: Idle</div>
+  <div id="deletedCount">Deleted Clips: 0</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

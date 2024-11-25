@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Kick Clip Deleter",
+    "version": "1.0",
+    "description": "Delete clips from a Kick channel automatically.",
+    "permissions": ["storage", "alarms", "scripting", "activeTab","cookies"],
+    "host_permissions": ["https://kick.com/*"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html"
+    }
+  }
+  

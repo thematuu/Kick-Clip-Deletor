@@ -2,13 +2,14 @@
 let intervalId = null;
 let deletedCount = 0;
 let retryDeletingVODs = false;
+let isAutoDeletionEnabled = false;
+let autoDeletionTimeoutId = null;
 
 // Utility Functions
 function getSessionToken(callback) {
   chrome.cookies.get({ url: "https://kick.com", name: "session_token" }, (cookie) => {
     if (cookie && cookie.value) {
       const decodedToken = decodeURIComponent(cookie.value);
-      console.log("Session token fetched from cookies");
       callback(decodedToken);
     } else {
       console.error("Failed to fetch session token from cookies.");
@@ -43,6 +44,18 @@ function fetchUsername(token, callback) {
       console.error("Error fetching username:", error);
       callback(null);
     });
+}
+
+async function isUserLive(username) {
+  try {
+    const response = await fetch(`https://kick.com/api/v2/channels/${username}`, { method: "GET" });
+    const data = await response.json();
+    // If livestream is not null, user is live
+    return data.livestream !== null;
+  } catch (err) {
+    console.error("Error checking live status:", err);
+    return false;
+  }
 }
 
 // Fetch clips
@@ -257,6 +270,90 @@ async function deleteAllVODsWithRetry(callback) {
   });
 }
 
+// Run the 10-minute deletion cycle (10 iterations every minute)
+async function runAutoDeletionCycle(token, username) {
+  // Delete all vods and clips every minute for 10 times
+  for (let i = 0; i < 10; i++) {
+    if (!isAutoDeletionEnabled) return; // Stop if turned off
+
+    // Delete all VODs
+    await new Promise((resolve) => {
+      deleteAllVODsOnce(() => {
+        resolve();
+      });
+    });
+
+    // Delete all Clips
+    const clips = await fetchClips(username);
+    for (const clip of clips) {
+      await deleteClip(clip.id, token);
+    }
+    chrome.storage.local.set({ deletionCount: deletedCount });
+
+    // Wait 1 minute before next iteration
+    await new Promise(res => setTimeout(res, 60 * 1000));
+    if (!isAutoDeletionEnabled) return; // Check again after waiting
+  }
+
+  // After 10 minutes, check if still live
+  if (!isAutoDeletionEnabled) return;
+
+  const live = await isUserLive(username);
+  if (live && isAutoDeletionEnabled) {
+    // If still live, run another cycle
+    runAutoDeletionCycle(token, username);
+  } else {
+    // If not live, check again in 5 minutes
+    scheduleNextAutoDeletionCheck(token, username);
+  }
+}
+
+// Schedule the next live check in 5 minutes
+function scheduleNextAutoDeletionCheck(token, username) {
+  if (!isAutoDeletionEnabled) return;
+  autoDeletionTimeoutId = setTimeout(async () => {
+    if (!isAutoDeletionEnabled) return;
+    const live = await isUserLive(username);
+    if (live) {
+      // If live start the cycle
+      runAutoDeletionCycle(token, username);
+    } else {
+      // If not live, schedule next check again in 5 min
+      scheduleNextAutoDeletionCheck(token, username);
+    }
+  }, 5 * 60 * 1000);
+}
+
+function startAutoDeletion() {
+  isAutoDeletionEnabled = true;
+  chrome.storage.local.set({ isAutoDeletionEnabled: true });
+  getSessionToken((token) => {
+    if (!token) {
+      console.error("Cannot start auto deletion without token");
+      return;
+    }
+    fetchUsername(token, (username) => {
+      if (!username) {
+        console.error("Cannot start auto deletion without username");
+        return;
+      }
+      // Start by scheduling the first check in 10 minutes
+      // Optionally, you could check immediately once
+      scheduleNextAutoDeletionCheck(token, username);
+    });
+  });
+}
+
+function stopAutoDeletion() {
+  isAutoDeletionEnabled = false;
+  chrome.storage.local.set({ isAutoDeletionEnabled: false });
+  if (autoDeletionTimeoutId) {
+    clearTimeout(autoDeletionTimeoutId);
+    autoDeletionTimeoutId = null;
+  }
+}
+
+
 // Listen for messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "start") {
@@ -283,12 +380,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     retryDeletingVODs = false;
     chrome.storage.local.set({ isRetryingVODs: false });
     sendResponse("Retry stopped. No VODs deleted.");
+  } else if (message.action === "startAutoDeletion") {
+    startAutoDeletion();
+    sendResponse("Auto deletion started.");
+  } else if (message.action === "stopAutoDeletion") {
+    stopAutoDeletion();
+    sendResponse("Auto deletion stopped.");
   }
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.get(["isRunning", "deletionCount", "isRetryingVODs"], (data) => {
-    // Restart clip deletion process if it was running
+  chrome.storage.local.get(["isRunning", "deletionCount", "isRetryingVODs", "isAutoDeletionEnabled"], (data) => {
+    // Restart clip deletion if it was running
     if (data.isRunning) {
       deletedCount = data.deletionCount || 0;
       startClipDeletion();
@@ -300,6 +403,11 @@ chrome.runtime.onStartup.addListener(() => {
       deleteAllVODsWithRetry((status) => {
         console.log("VOD Deletion Status on Startup:", status);
       });
+    }
+
+    // Restart auto deletion if it was enabled
+    if (data.isAutoDeletionEnabled) {
+      startAutoDeletion();
     }
   });
 });

@@ -123,7 +123,6 @@
       width: 50px;
       height: 24px;
     }
-    
 
     .slider input {
       opacity: 0;
@@ -168,7 +167,7 @@
       margin-left: 8px;
       cursor: pointer;
     }
-    
+
     .tooltip-icon {
       background-color: #3EBF58;
       color: white;
@@ -179,7 +178,7 @@
       display: inline-block;
       text-align: center;
     }
-    
+
     .tooltip-text {
       visibility: hidden;
       width: 250px;
@@ -197,7 +196,7 @@
       font-size: 14px;
       line-height: 1.4;
     }
-    
+
     .tooltip:hover .tooltip-text {
       visibility: visible;
       opacity: 1;
@@ -213,6 +212,39 @@
       border-color: #525252 transparent transparent transparent;
     }
     
+    /* Accordion styles */
+    .accordion-header {
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin: 20px 0 10px 0;
+      display: flex;
+      align-items: center;
+      color: #3EBF58;
+      border-bottom: 2px solid #3EBF58;
+      padding-bottom: 2px;
+      user-select: none;
+    }
+
+    .accordion-header::after {
+      content: "▼";
+      font-size: 12px;
+      color: #3EBF58;
+      margin-left: 10px;
+      transition: transform 0.3s ease;
+    }
+
+    .accordion-header.active::after {
+      transform: rotate(-180deg);
+    }
+
+    .accordion-content {
+      display: none;
+      margin-bottom: 10px;
+      padding: 12px;
+      background-color: #2C2C2C;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -223,37 +255,51 @@
   </div>
 
   <div class="section">
-    <h4>Clip Deletion</h4>
-    <button id="startButton">Start Clips Deletion</button>
-    <button id="stopButton">Stop Clips Deletion</button>
-    <div id="status" class="status">Status: Idle</div>
-    <div id="deletedCount" class="status">Deleted Clips: 0</div>
-
-    <h4>VOD Deletion</h4>
-    <button id="deleteVodsButton">Delete All VODs</button>
+    <h4>Automatic Live Deletion</h4>
     <div class="slider-container">
-      
-      <label for="retryVodsCheckbox" class="slider-label">
-        <div class="tooltip">
-          <span class="tooltip-icon">?</span>
-          <div class="tooltip-text">
-            Kick takes some time to make VOD available after stream starts. If this is enabled and deletion is started before it exists, it will be deleted when it becomes available.
-          </div>
-          
-        </div>
-        <span>Retry until VOD found and deleted:</span>
-       
+      <label for="autoDeletionCheckbox" class="slider-label">
+        <span>Auto Delete When Live:</span>
         <div class="slider">
-          <input type="checkbox" id="retryVodsCheckbox" />
+          <input type="checkbox" id="autoDeletionCheckbox" />
           <div class="slider-track">
             <div class="slider-thumb"></div>
           </div>
         </div>
       </label>
     </div>
-    <button id="stopRetryButton" disabled>Stop Retry</button>
-    <div id="vodDeletionStatus" class="status"></div>    
-  </div>
+    <div id="autoDeletionStatus" class="status">Auto Deletion: Off</div>
 
+    <h4 class="accordion-header">Clip Deletion</h4>
+    <div class="accordion-content">
+      <button id="startButton">Start Clips Deletion</button>
+      <button id="stopButton">Stop Clips Deletion</button>
+      <div id="status" class="status">Status: Idle</div>
+      <div id="deletedCount" class="status">Deleted Clips: 0</div>
+    </div>
+
+    <h4 class="accordion-header">VOD Deletion</h4>
+    <div class="accordion-content">
+      <button id="deleteVodsButton">Delete All VODs</button>
+      <div class="slider-container">
+        <label for="retryVodsCheckbox" class="slider-label">
+          <div class="tooltip">
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-text">
+              Kick takes some time to make VOD available after stream starts. If this is enabled and deletion is started before it exists, it will be deleted when it becomes available.
+            </div>
+          </div>
+          <span>Retry until VOD found and deleted:</span>
+          <div class="slider">
+            <input type="checkbox" id="retryVodsCheckbox" />
+            <div class="slider-track">
+              <div class="slider-thumb"></div>
+            </div>
+          </div>
+        </label>
+      </div>
+      <button id="stopRetryButton" disabled>Stop Retry</button>
+      <div id="vodDeletionStatus" class="status"></div>    
+    </div>
+  </div>
 </body>
 </html>

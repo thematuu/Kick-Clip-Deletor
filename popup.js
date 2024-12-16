@@ -7,6 +7,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusDiv = document.getElementById("status");
   const deletedCountDiv = document.getElementById("deletedCount");
   const vodDeletionStatusDiv = document.getElementById("vodDeletionStatus");
+  const autoDeletionCheckbox = document.getElementById("autoDeletionCheckbox");
+  const autoDeletionStatusDiv = document.getElementById("autoDeletionStatus");
+
+  chrome.storage.local.get(["isAutoDeletionEnabled"], (data) => {
+    const enabled = !!data.isAutoDeletionEnabled;
+    autoDeletionCheckbox.checked = enabled;
+    autoDeletionStatusDiv.textContent = `Auto Deletion: ${enabled ? "On" : "Off"}`;
+  });
+
+  // Handle toggle changes
+  autoDeletionCheckbox.addEventListener("change", () => {
+    const enabled = autoDeletionCheckbox.checked;
+    chrome.storage.local.set({ isAutoDeletionEnabled: enabled }, () => {
+      autoDeletionStatusDiv.textContent = `Auto Deletion: ${enabled ? "On" : "Off"}`;
+      chrome.runtime.sendMessage({ action: enabled ? "startAutoDeletion" : "stopAutoDeletion" });
+    });
+  });
 
   // Load state from local storage
   chrome.storage.local.get(
@@ -107,6 +124,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     );
   }, 1000); // Refresh every second
+
+  // Accordion functionality
+  const headers = document.querySelectorAll('.accordion-header');
+  headers.forEach(header => {
+    header.addEventListener('click', () => {
+      header.classList.toggle('active');
+      const content = header.nextElementSibling;
+      if (content.style.display === 'block') {
+        content.style.display = 'none';
+      } else {
+        content.style.display = 'block';
+      }
+    });
+  });
 
   // Ensure slider toggles the checkbox state
   document.querySelectorAll('.slider').forEach(slider => {

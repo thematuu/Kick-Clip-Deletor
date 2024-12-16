@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Kick Deleter",
-    "version": "1.0",
-    "description": "Delete clips from a Kick channel automatically.",
+    "name": "Kick Deletor",
+    "version": "0.1",
+    "description": "Delete clips and VODs from your Kick channel automatically",
     "permissions": ["storage","cookies"],
     "host_permissions": ["https://kick.com/*"],
     "background": {
